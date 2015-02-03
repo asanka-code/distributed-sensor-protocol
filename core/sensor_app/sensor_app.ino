@@ -29,76 +29,81 @@
 #include <MirfHardwareSpi85Driver.h>
 
 void setup() {
-  /*
-   * Setup pins / SPI.
-   */
+                /*
+                  * Setup pins / SPI.
+                */
 
-  Mirf.cePin = PB4;
-  Mirf.csnPin = PB3;
+                Mirf.cePin = PB4;
+                Mirf.csnPin = PB3;
 
-  Mirf.spi = &MirfHardwareSpi85;
-  Mirf.init();
+                Mirf.spi = &MirfHardwareSpi85;
+                Mirf.init();
   
-  /*
-   * Configure reciving address.
-   */
+                /*
+                 * Configure reciving address.
+                 */
    
-  Mirf.setRADDR((byte *)"clie1");
+                Mirf.setRADDR((byte *)"clie1");
   
-  /*
-   * Set the payload length to sizeof(unsigned long) the
-   * return type of millis().
-   *
-   * NB: payload on client and server must be the same.
-   */
+                /*
+                 * Set the payload length to sizeof(unsigned long) the
+                 * return type of millis().
+                 *
+                 * NB: payload on client and server must be the same.
+                 */
    
-  Mirf.payload = sizeof(unsigned long);
+                Mirf.payload = sizeof(unsigned long);
   
-  /*
-   * Write channel and payload config then power up reciver.
-   */
+                /*
+                 * Write channel and payload config then power up reciver.
+                 */
    
-  /*
-   * To change channel:
-   * 
-   * Mirf.channel = 10;
-   *
-   * NB: Make sure channel is legal in your area.
-   */
+                /*
+                 * To change channel:
+                 * 
+                 * Mirf.channel = 10;
+                 *
+                 * NB: Make sure channel is legal in your area.
+                 */
    
-  Mirf.config();
+                Mirf.config();
 }
 
 void loop() {
-  static unsigned long counter = 0;
-  unsigned long time = millis();
+        
+        static unsigned long counter = 0;
+        unsigned long time = millis();
   
-  Mirf.setTADDR((byte *)"serv1");
+        Mirf.setTADDR((byte *)"serv1");
   
-  Mirf.send((byte *)&counter);
+         Mirf.send((byte *)&counter);
 
-  while (Mirf.isSending()) {
-    if ((millis() - time) > 1000) {
-      delay(1000);
-      return;
-    }
-  }
+        while (Mirf.isSending()) {
+                
+                if ((millis() - time) > 1000) {
+                        
+                        delay(1000);
+                        return;
+                }
+        }
 
-  delay(10);
+        delay(10);
 
-  while (!Mirf.dataReady()){
-    if ((millis() - time) > 1000) {
-      delay(1000);
-      return;
-    }
-  }
+        while (!Mirf.dataReady()) {
+                
+                if ((millis() - time) > 1000) {
+                        delay(1000);
+                        return;
+                }
+        }
 
-  unsigned long recv;
-  Mirf.getData((byte *) &recv);
+        unsigned long recv;
+        
+        Mirf.getData((byte *) &recv);
 
-  counter = recv + 1;
+        counter = recv + 1;
 
-  delay(500);
+        delay(500);
 } 
   
   
