@@ -1,104 +1,89 @@
-/**
- * An Mirf example which copies back the data it recives.
- *
- * Pins:
- * Hardware SPI:
- * MISO -> 12
- * MOSI -> 11
- * SCK -> 13
- *
- * Configurable:
- * CE -> 8
- * CSN -> 7
- *
- */
-
+// For running on Arduino, commented the below line.
+//#include <SPI85.h>
 #include <SPI.h>
+
 #include <Mirf.h>
 #include <nRF24L01.h>
+
+// For running on Arduino, commented the below line.
+//#include <MirfHardwareSpi85Driver.h>
 #include <MirfHardwareSpiDriver.h>
 
-void setup(){
-  Serial.begin(9600);
-  
-  /*
-   * Set the SPI Driver.
-   */
+struct packet_struct {	
+	byte system_id;		// 1 byte
+	byte component_id;	// 1 byte
+	int data;		// 2 bytes
+};
 
-  Mirf.spi = &MirfHardwareSpi;
+void setup () {
+
+		// Only for Arduino		
+		Serial.begin(9600);
+
+                // For running on Arduino, commented the below line.
+                //Mirf.cePin = PB4;
+                //Mirf.csnPin = PB3;
+
+                // For running on Arduino, commented the below line.
+                //Mirf.spi = &MirfHardwareSpi85;
+                Mirf.spi = &MirfHardwareSpi;
+
+                Mirf.init();
   
-  /*
-   * Setup pins / SPI.
-   */
+                Mirf.setRADDR((byte *)"disp");   
+                Mirf.payload = sizeof(packet_struct);              
+		//Mirf.channel = 10;
    
-  Mirf.init();
-  
-  /*
-   * Configure reciving address.
-   */
-   
-  Mirf.setRADDR((byte *)"serv1");
-  
-  /*
-   * Set the payload length to sizeof(unsigned long) the
-   * return type of millis().
-   *
-   * NB: payload on client and server must be the same.
-   */
-   
-  Mirf.payload = sizeof(unsigned long);
-  
-  /*
-   * Write channel and payload config then power up reciver.
-   */
-   
-  Mirf.config();
-  
-  Serial.println("Listening..."); 
+                Mirf.config();        
 }
 
-void loop(){
-  /*
-   * A buffer to store the data.
-   */
-   
-  byte data[Mirf.payload];
+void loop () {
+        
+        static packet_struct packet;
+        int num_sensors = 2;
+
+        for (int sensor_number = 0; sensor_number<num_sensors; sensor_number++) {
+                                               
+                // generating request packet
+                packet.system_id = 0;
+                packet.component_id = sensor_number;
+                packet.data = 0;
+                
+                // sending request packet
+                Mirf.setTADDR((byte *)"disp"); 
+                Mirf.send((byte *) &packet);
+                // take note of the time we send this packet
+                unsigned long time = millis();
+                
+                // wait till the sending is done  
+                while (Mirf.isSending()) { }
+                Serial.print("Controller: Sent a request packet to the sensor:");
+                Serial.println(sensor_number);
+                            
+                // wait for the response data packet
+                while (!Mirf.dataReady()) {
+                        
+                        // it no response for a 1 second, we start sensing cycle again.
+                        // ToDo: actually what should happpen here is moving to the next iteration of the for loop. But putting 'continue' will continue the above while
+                        // loop instead of continuing outer for loop. So I put 'return' to goto the next iteration of the loop() cycle for the moment. Do something about it later!!
+                        if ((millis() - time) > 1000) {
+                                return;
+                        }
+                }
+               Serial.print("Controller: Received a data packet from the sensor:");
+               Serial.println(sensor_number);
+                
+                // process the received sensor data
+                Mirf.getData((byte *) &packet);
+                Serial.print("component ID = ");
+                Serial.println(packet.component_id);
+                Serial.print("data = ");
+                Serial.println(packet.data);
+                
+                // wait for a while before sampling the sensors in the next iteration
+                delay(1000);
+        }
+} 
   
-  /*
-   * If a packet has been recived.
-   *
-   * isSending also restores listening mode when it 
-   * transitions from true to false.
-   */
-   
-  if(!Mirf.isSending() && Mirf.dataReady()){
-    Serial.println("Got packet");
-    
-    /*
-     * Get load the packet into the buffer.
-     */
-     
-    Mirf.getData(data);
-    
-    /*
-     * Set the send address.
-     */
-     
-     
-    Mirf.setTADDR((byte *)"clie1");
-    
-    /*
-     * Send the data back to the client.
-     */
-     
-    Mirf.send(data);
-    
-    /*
-     * Wait untill sending has finished
-     *
-     * NB: isSending returns the chip to receving after returning true.
-     */
-      
-    Serial.println("Reply sent.");
-  }
-}
+  
+  

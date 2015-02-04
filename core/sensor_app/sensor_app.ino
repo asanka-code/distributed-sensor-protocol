@@ -1,109 +1,75 @@
-/**
- * A Mirf example test sending and receiving data between
- * Ardunio (running as server) and ATTiny85 (running as client).
- *
- * This uses the SPI85 class from: https://github.com/stanleyseow/attiny-nRF24L01/tree/master/libraries/SPI85
- *
- * Pins:
- * Hardware SPI:
- * Attiny x5 Datasheet page 62
- * USI-DI -> PB0 ( MISO )
- * USI-DO -> PB1 ( MOSI )
- * USI-SCL -> PB2 ( SCK )
- *
- * (Configurable):
- * CE -> PB4
- * CSN -> PB3
- */
+// For running on Arduino, commented the below line.
+//#include <SPI85.h>
+#include <SPI.h>
 
-// ATtiny25/45/85 Pin map
-//                                 +-\/-+
-//                Reset/Ain0 (D 5) PB5  1|o   |8  Vcc
-//  nRF24L01 CE, Pin3 - Ain3 (D 3) PB3  2|    |7  PB2 (D 2) Ain1 - nRF24L01 SCK, pin5
-// nRF24L01 CSN, Pin4 - Ain2 (D 4) PB4  3|    |6  PB1 (D 1) pwm1 - nRF24L01 MOSI, pin7
-//                                 GND  4|    |5  PB0 (D 0) pwm0 - nRF24L01 MISO, pin6
-
-#include <SPI85.h>
 #include <Mirf.h>
 #include <nRF24L01.h>
-#include <MirfHardwareSpi85Driver.h>
 
-void setup() {
-                /*
-                  * Setup pins / SPI.
-                */
+// For running on Arduino, commented the below line.
+//#include <MirfHardwareSpi85Driver.h>
+#include <MirfHardwareSpiDriver.h>
 
-                Mirf.cePin = PB4;
-                Mirf.csnPin = PB3;
+struct packet_struct {	
+	byte system_id;		// 1 byte
+	byte component_id;	// 1 byte
+	int data;		// 2 bytes
+};
 
-                Mirf.spi = &MirfHardwareSpi85;
+void setup () {
+
+		// Only for Arduino		
+		Serial.begin(9600);
+
+                // For running on Arduino, commented the below line.
+                //Mirf.cePin = PB4;
+                //Mirf.csnPin = PB3;
+
+                // For running on Arduino, commented the below line.
+                //Mirf.spi = &MirfHardwareSpi85;
+                Mirf.spi = &MirfHardwareSpi;
+
                 Mirf.init();
   
-                /*
-                 * Configure reciving address.
-                 */
+                Mirf.setRADDR((byte *)"disp");   
+                Mirf.payload = sizeof(packet_struct);              
+		//Mirf.channel = 10;
    
-                Mirf.setRADDR((byte *)"clie1");
-  
-                /*
-                 * Set the payload length to sizeof(unsigned long) the
-                 * return type of millis().
-                 *
-                 * NB: payload on client and server must be the same.
-                 */
-   
-                Mirf.payload = sizeof(unsigned long);
-  
-                /*
-                 * Write channel and payload config then power up reciver.
-                 */
-   
-                /*
-                 * To change channel:
-                 * 
-                 * Mirf.channel = 10;
-                 *
-                 * NB: Make sure channel is legal in your area.
-                 */
-   
-                Mirf.config();
+                Mirf.config();        
 }
 
-void loop() {
+void loop () {
         
-        static unsigned long counter = 0;
-        unsigned long time = millis();
-  
-        Mirf.setTADDR((byte *)"serv1");
-  
-         Mirf.send((byte *)&counter);
-
-        while (Mirf.isSending()) {
-                
-                if ((millis() - time) > 1000) {
-                        
-                        delay(1000);
-                        return;
-                }
-        }
-
-        delay(10);
-
-        while (!Mirf.dataReady()) {
-                
-                if ((millis() - time) > 1000) {
-                        delay(1000);
-                        return;
-                }
-        }
-
-        unsigned long recv;
+        static packet_struct packet;
+        int my_system_id = 0;        
+        //int my_component_id = 0;
+        int my_component_id = 1;
         
-        Mirf.getData((byte *) &recv);
+         // wait for a request packet
+         while (!Mirf.dataReady()) { }
+         
+         // check whether it's for me
+         Mirf.getData((byte *) &packet);
+         if ( (packet.system_id!=my_system_id) || (packet.component_id!=my_component_id) ) {
+                 return;
+         }
+         Serial.print("Sensor: ");
+         Serial.print(my_component_id);
+         Serial.println(" Received a packet from controller mote.");
+         
+         // read sensor data and fill the packet
+         //int sensor_data = analogRead(0);
+         int sensor_data = 38;
+         packet.data = sensor_data;
+         
+          // sending data packet
+          Mirf.setTADDR((byte *)"disp"); 
+          Mirf.send((byte *) &packet);
 
-        counter = recv + 1;
-
-        delay(500);
+          // wait till the sending is done  
+          while (Mirf.isSending()) { }
+          Serial.print("Sensor: ");
+          Serial.print(my_component_id);
+          Serial.println(" Sent a packet to the controller mote.");
 } 
   
   
