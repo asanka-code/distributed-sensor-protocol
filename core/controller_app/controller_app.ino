@@ -32,7 +32,8 @@ void setup () {
   
                 Mirf.setRADDR((byte *)"disp");   
                 Mirf.payload = sizeof(packet_struct);              
-		//Mirf.channel = 10;
+                
+		Mirf.channel = 50;
    
                 Mirf.config();        
 }
@@ -40,7 +41,8 @@ void setup () {
 void loop () {
         
         static packet_struct packet;
-        int num_sensors = 2;
+        //int num_sensors = 2;
+        int num_sensors = 1;
 
         for (int sensor_number = 0; sensor_number<num_sensors; sensor_number++) {
                                                
@@ -66,7 +68,8 @@ void loop () {
                         // it no response for a 1 second, we start sensing cycle again.
                         // ToDo: actually what should happpen here is moving to the next iteration of the for loop. But putting 'continue' will continue the above while
                         // loop instead of continuing outer for loop. So I put 'return' to goto the next iteration of the loop() cycle for the moment. Do something about it later!!
-                        if ((millis() - time) > 1000) {
+                        //if ((millis() - time) > 1000) {
+                        if ((millis() - time) > 500) {
                                 return;
                         }
                 }
@@ -81,7 +84,8 @@ void loop () {
                 Serial.println(packet.data);
                 
                 // wait for a while before sampling the sensors in the next iteration
-                delay(1000);
+                //delay(1000);
+                delay(500);
         }
 } 
   
