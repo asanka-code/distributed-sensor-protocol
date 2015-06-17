@@ -46,13 +46,13 @@ void loop () {
         //int my_component_id = 1;
         
          // wait for a request packet
-         // while (!Mirf.dataReady()) { }
+         while (!Mirf.dataReady()) { }
          
          // check whether it's for me
-         // Mirf.getData((byte *) &packet);
-         // if ( (packet.system_id!=my_system_id) || (packet.component_id!=my_component_id) ) {
-         //        return;
-         //}
+         Mirf.getData((byte *) &packet);
+         if ( (packet.system_id!=my_system_id) || (packet.component_id!=my_component_id) ) {
+                 return;
+         }
          
          // Only for Arduino
          //Serial.print("Sensor: ");

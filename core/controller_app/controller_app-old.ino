@@ -40,12 +40,6 @@ void setup () {
 
 void loop () {
         
-        //-----------------------------------------------------------------------------------------------------------------
-        //#Asanka: experimenting with the received signal strength
-        byte carrier_detect_reg_value = (byte) 0;
-        byte dummy_byte_data = B10101010;
-        //-----------------------------------------------------------------------------------------------------------------
-        
         static packet_struct packet;
         //int num_sensors = 2;
         int num_sensors = 1;
@@ -68,27 +62,8 @@ void loop () {
                 Serial.print("Controller: Sent a request packet to the sensor:");
                 Serial.println(sensor_number);
                             
-                //-----------------------------------------------------------------------------------------------------------------
-               //#Asanka: experimenting with the received signal strength
-               Mirf.readRegister(CD, &carrier_detect_reg_value, sizeof(carrier_detect_reg_value));
-               Serial.print("carrier_detect_reg_value = ");
-               Serial.println(carrier_detect_reg_value, BIN);
-               Serial.println(dummy_byte_data, BIN);
-               //-----------------------------------------------------------------------------------------------------------------             
-                            
                 // wait for the response data packet
                 while (!Mirf.dataReady()) {
-                        
-                        //-----------------------------------------------------------------------------------------------------------------
-                       //#Asanka: experimenting with the received signal strength
-                       //RX mode
-                       Mirf.ceHi();
-                       Mirf.readRegister(CD, &carrier_detect_reg_value, sizeof(carrier_detect_reg_value));
-                       Serial.print("carrier_detect_reg_value = ");
-                       Serial.println(carrier_detect_reg_value, BIN);
-                       Serial.println(carrier_detect_reg_value, HEX);
-                       Serial.println(dummy_byte_data, BIN);
-                       //-----------------------------------------------------------------------------------------------------------------  
                         
                         // it no response for a 1 second, we start sensing cycle again.
                         // ToDo: actually what should happpen here is moving to the next iteration of the for loop. But putting 'continue' will continue the above while
@@ -100,17 +75,6 @@ void loop () {
                 }
                Serial.print("Controller: Received a data packet from the sensor:");
                Serial.println(sensor_number);
-  
-               //-----------------------------------------------------------------------------------------------------------------
-               //#Asanka: experimenting with the received signal strength
-               //RX mode
-               Mirf.ceHi();
-               Mirf.readRegister(CD, &carrier_detect_reg_value, sizeof(carrier_detect_reg_value));
-               Serial.print("carrier_detect_reg_value = ");
-               Serial.println(carrier_detect_reg_value, BIN);
-               Serial.println(dummy_byte_data, BIN);
-               //-----------------------------------------------------------------------------------------------------------------  
-               
                 
                 // process the received sensor data
                 Mirf.getData((byte *) &packet);
