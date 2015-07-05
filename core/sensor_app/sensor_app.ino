@@ -9,10 +9,19 @@
 #include <MirfHardwareSpi85Driver.h>
 //#include <MirfHardwareSpiDriver.h>
 
+// the bits which control Tx power levels of RF_SETUP register
+#define RF_PWR_LOW        1
+#define RF_PWR_HIGH        2
+
+// variable to hold the content of RF_SETUP register
+byte rf_setup_reg_value = (byte) 0;
+
 struct packet_struct {	
 	byte system_id;		// 1 byte
 	byte component_id;	// 1 byte
 	int data;		// 2 bytes
+
+	byte tx_power_level;	// 1 byte
 };
 
 void setup () {
@@ -33,8 +42,8 @@ void setup () {
                 Mirf.setRADDR((byte *)"disp");   
                 Mirf.payload = sizeof(packet_struct);              
 		
-                Mirf.channel = 50;
-   
+                Mirf.channel = 50;                                                           
+                   
                 Mirf.config();        
 }
 
@@ -46,13 +55,39 @@ void loop () {
         //int my_component_id = 1;
         
          // wait for a request packet
-         // while (!Mirf.dataReady()) { }
+         while (!Mirf.dataReady()) { }
          
          // check whether it's for me
-         // Mirf.getData((byte *) &packet);
-         // if ( (packet.system_id!=my_system_id) || (packet.component_id!=my_component_id) ) {
-         //        return;
-         //}
+         Mirf.getData((byte *) &packet);
+         if ( (packet.system_id!=my_system_id) || (packet.component_id!=my_component_id) ) {
+                 return;
+         }
+         
+         // read the content of the RF_SETUP register               
+         Mirf.readRegister(RF_SETUP, &rf_setup_reg_value, sizeof(rf_setup_reg_value));
+                       
+         // configure Tx power according to the instructions from mother mote
+         if(packet.tx_power_level == 0) {                 
+                 // Set to -18dB Tx power (bits '00')
+                 rf_setup_reg_value &= ~(_BV(RF_PWR_LOW) | _BV(RF_PWR_HIGH)) ;                 
+         } else if(packet.tx_power_level == 1) {
+                 // Set to -12dB Tx power (bits '01')
+                 rf_setup_reg_value &= ~(_BV(RF_PWR_LOW) | _BV(RF_PWR_HIGH)) ;                 
+                 rf_setup_reg_value |= _BV(RF_PWR_LOW) ;                 
+         } else if(packet.tx_power_level == 2) {                 
+                 // Set to -6dB Tx power (bits '10')
+                 rf_setup_reg_value &= ~(_BV(RF_PWR_LOW) | _BV(RF_PWR_HIGH)) ;                 
+                 rf_setup_reg_value |= _BV(RF_PWR_HIGH) ;                 
+         } else if(packet.tx_power_level == 3) {         
+                 // Set to 0dB Tx power (bits '11')
+                 rf_setup_reg_value &= ~(_BV(RF_PWR_LOW) | _BV(RF_PWR_HIGH)) ;                 
+                 rf_setup_reg_value |= (_BV(RF_PWR_LOW) | _BV(RF_PWR_HIGH)) ;
+         }                 
+         
+        // write the content to the RF_SETUP register               
+        Mirf.writeRegister(RF_SETUP, &rf_setup_reg_value, sizeof(rf_setup_reg_value));
+                
+                
          
          // Only for Arduino
          //Serial.print("Sensor: ");
