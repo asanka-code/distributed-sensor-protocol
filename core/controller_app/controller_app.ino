@@ -1,3 +1,15 @@
+/*
+nRF24L01 to Arduino Uno
+MISO -> 12
+MOSI -> 11
+SCK -> 13
+CE -> 8
+CSN -> 7
+GND -> GND
+VCC -> 3V3
+*/
+
+
 // For running on Arduino, commented the below line.
 //#include <SPI85.h>
 #include <SPI.h>

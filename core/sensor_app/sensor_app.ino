@@ -1,3 +1,13 @@
+/*
+nRF24L01 to ATtiny85
+MISO -> PB0
+MOSI -> PB1
+SCK -> PB2
+CE -> PB4
+CSN -> PB3
+*/
+
+
 // For running on Arduino, commented the below line.
 #include <SPI85.h>
 //#include <SPI.h>
