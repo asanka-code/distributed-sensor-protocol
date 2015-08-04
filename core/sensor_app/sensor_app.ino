@@ -34,6 +34,11 @@ struct packet_struct {
 	byte tx_power_level;	// 1 byte
 };
 
+struct compressed_packet{
+    byte addresses;     // 2:4:2 system_id:component_id,tx_power_level
+    int data;
+};
+
 void setup () {
 
 		// Only for Arduino		
@@ -50,7 +55,7 @@ void setup () {
                 Mirf.init();
   
                 Mirf.setRADDR((byte *)"disp");   
-                Mirf.payload = sizeof(packet_struct);              
+                Mirf.payload = sizeof(compressed_packet);              
 		
                 Mirf.channel = 50;                                                           
                    
@@ -60,6 +65,8 @@ void setup () {
 void loop () {
         
         static packet_struct packet;
+        static compressed_packet compressed;
+
         int my_system_id = 0;        
         int my_component_id = 0;
         //int my_component_id = 1;
@@ -68,7 +75,9 @@ void loop () {
          while (!Mirf.dataReady()) { }
          
          // check whether it's for me
-         Mirf.getData((byte *) &packet);
+         Mirf.getData((byte *) &compressed);
+         unpack(&packet, &compressed);
+
          if ( (packet.system_id!=my_system_id) || (packet.component_id!=my_component_id) ) {
                  return;
          }
@@ -109,9 +118,10 @@ void loop () {
          int sensor_data = 38;
          packet.data = sensor_data;
          
+         pack(&compressed, &packet);
           // sending data packet
           Mirf.setTADDR((byte *)"disp"); 
-          Mirf.send((byte *) &packet);
+          Mirf.send((byte *) &compressed);
 
           // wait till the sending is done  
           while (Mirf.isSending()) { }
@@ -120,5 +130,25 @@ void loop () {
           //Serial.println(" Sent a packet to the controller mote.");
 } 
   
-  
+void pack(struct compressed_packet *compressed, struct packet_struct * pac){
+    int addr;
+
+    addr = pac->system_id;
+    addr <<=4;
+    addr |= pac->component_id;    
+    addr <<=2;
+    addr |= pac->tx_power_level;
+
+    compressed->addresses = addr;
+    compressed->data = pac->data;
+
+
+}
+
+void unpack(struct packet_struct *pac, struct compressed_packet *compressed){
+    pac->system_id = byte(compressed->addresses>>6);
+    pac->component_id = byte((compressed->addresses & B111100 ) >> 2);
+    pac->tx_power_level = byte(compressed->addresses & B11);
+    pac->data = compressed->data;
+}
   
