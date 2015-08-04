@@ -21,12 +21,17 @@ VCC -> 3V3
 //#include <MirfHardwareSpi85Driver.h>
 #include <MirfHardwareSpiDriver.h>
 
-struct packet_struct {	
-	byte system_id;		// 1 byte
-	byte component_id;	        // 1 byte
-	int data;		                // 2 bytes
+struct packet_struct {  
+  byte system_id;   // 1 byte
+  byte component_id;          // 1 byte
+  int data;                   // 2 bytes
 
-	byte tx_power_level;	// 1 byte
+  byte tx_power_level;  // 1 byte
+};
+
+struct compressed_packet{
+    byte addresses;     // 2:4:2 system_id:component_id,tx_power_level 
+    int data;
 };
 
 void setup () {
@@ -45,7 +50,7 @@ void setup () {
                 Mirf.init();
   
                 Mirf.setRADDR((byte *)"disp");   
-                Mirf.payload = sizeof(packet_struct);              
+                Mirf.payload = sizeof(compressed_packet);              
                 
 		Mirf.channel = 50;
    
@@ -55,9 +60,10 @@ void setup () {
 void loop () {
                     
         static packet_struct packet;
+        static compressed_packet compressed;
         
         // set the number of sensor nodes that belongs to this mother mote
-        int num_sensors = 2;
+        int num_sensors = 1;
         //int num_sensors = 1;        
         
         int num_power_levels = 4;        
@@ -71,10 +77,12 @@ void loop () {
                         packet.component_id = sensor_number;
                         packet.data = 0;
                         packet.tx_power_level = tx_power;
+
+                        pack(&compressed, &packet);
                 
                         // sending request packet
                         Mirf.setTADDR((byte *)"disp"); 
-                        Mirf.send((byte *) &packet);
+                        Mirf.send((byte *) &compressed);
                 
                         // wait till the sending is done  
                         while (Mirf.isSending()) { }
@@ -110,8 +118,8 @@ void loop () {
                        
                        } else {
                        
-                                Mirf.getData((byte *) &packet);
-
+                                Mirf.getData((byte *) &compressed);
+                                unpack(&packet, &compressed);
                                 // if we have received a response from the sensor, we print its details
                                 Serial.println("----------------------------------------------------------------");
                                 Serial.print("Received from sensor:");
@@ -134,7 +142,26 @@ void loop () {
                 //delay(1000);
                 delay(500);
         }
-} 
-  
-  
-  
+}
+
+void pack(struct compressed_packet *compressed, struct packet_struct * pac){
+    int addr;
+
+    addr = pac->system_id;
+    addr <<=4;
+    addr |= pac->component_id;    
+    addr <<=2;
+    addr |= pac->tx_power_level;
+
+    compressed->addresses = addr;
+    compressed->data = pac->data;
+
+
+}
+
+void unpack(struct packet_struct *pac, struct compressed_packet *compressed){
+    pac->system_id = byte(compressed->addresses>>6);
+    pac->component_id = byte((compressed->addresses & B111100 ) >> 2);
+    pac->tx_power_level = byte(compressed->addresses & B11);
+    pac->data = compressed->data;
+}
